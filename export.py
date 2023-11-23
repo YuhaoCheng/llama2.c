@@ -31,9 +31,12 @@ from model import ModelArgs, Transformer
 # -----------------------------------------------------------------------------
 # common utilities
 
-def serialize_fp32(file, tensor):
+def serialize_fp32(file, tensor, use_fp16=True):
     """ writes one fp32 tensor to file that is open in wb mode """
-    d = tensor.detach().cpu().view(-1).to(torch.float32).numpy()
+    if use_fp16:
+        d = tensor.detach().cpu().view(-1).to(torch.float16).numpy()
+    else:
+        d = tensor.detach().cpu().view(-1).to(torch.float32).numpy()
     b = struct.pack(f'{len(d)}f', *d)
     file.write(b)
 
@@ -434,7 +437,7 @@ def load_meta_model(model_path):
     model.eval()
     return model
 
-def load_hf_model(model_path):
+def load_hf_model(model_path, dtype=torch.float16):
 
     try:
         from transformers import AutoModelForCausalLM
@@ -444,7 +447,7 @@ def load_hf_model(model_path):
         return None
 
     # load HF model
-    hf_model = AutoModelForCausalLM.from_pretrained(model_path)
+    hf_model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, device_map="auto",torch_dtype=dtype).cuda()
     hf_dict = hf_model.state_dict()
 
     # convert LlamaConfig to ModelArgs
@@ -460,7 +463,7 @@ def load_hf_model(model_path):
 
     # create a new Transformer object and set weights
     model = Transformer(config)
-
+    import ipdb;ipdb.set_trace()
     model.tok_embeddings.weight = nn.Parameter(hf_dict['model.embed_tokens.weight'])
     model.norm.weight = nn.Parameter(hf_dict['model.norm.weight'])
 
