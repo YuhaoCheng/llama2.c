@@ -558,7 +558,7 @@ if __name__ == "__main__":
     group.add_argument("--hf", type=str, help="huggingface model path")
     args = parser.parse_args()
     dtype = {"fp16": torch.float16, "fp32": torch.float32}[args.dtype]
-
+    import ipdb;ipdb.set_trace()
     if args.checkpoint:
         model = load_checkpoint(args.checkpoint)
     elif args.meta_llama:
