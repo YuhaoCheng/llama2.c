@@ -28,6 +28,7 @@ from torch import nn
 
 from model import ModelArgs, Transformer
 
+from loguru import logger
 # -----------------------------------------------------------------------------
 # common utilities
 
@@ -463,16 +464,18 @@ def load_hf_model(model_path, dtype=torch.float16):
 
     # create a new Transformer object and set weights
     model = Transformer(config)
-    import ipdb;ipdb.set_trace()
+    # import ipdb;ipdb.set_trace()
     model.tok_embeddings.weight = nn.Parameter(hf_dict['model.embed_tokens.weight'])
     model.norm.weight = nn.Parameter(hf_dict['model.norm.weight'])
 
     # huggingface permutes WQ and WK, this function reverses it
     def permute_reverse(w, n_heads=config.n_heads, dim1=config.dim, dim2=config.dim):
+        # import ipdb;ipdb.set_trace()
         return w.view(n_heads, 2, dim1 // n_heads // 2, dim2).transpose(1, 2).reshape(dim1, dim2)
 
     for layer in model.layers:
         i = layer.layer_id
+        logger.info(f"The layer id is: {i}")
         layer.attention_norm.weight = nn.Parameter(hf_dict[f'model.layers.{i}.input_layernorm.weight'])
         layer.attention.wq.weight = nn.Parameter(permute_reverse(hf_dict[f'model.layers.{i}.self_attn.q_proj.weight']))
         layer.attention.wk.weight = nn.Parameter(permute_reverse(hf_dict[f'model.layers.{i}.self_attn.k_proj.weight']))
